@@ -1,0 +1,86 @@
+// Minimal WhiteNN grammar for the MVP subset.
+
+?start: program
+
+program: item*
+item: decl | stmt
+
+decl: model_decl
+    | rule_decl
+    | fn_decl
+
+model_decl: "model" IDENT "{" param_decl* "}"
+param_decl: "param" IDENT shape_spec? init_clause? ";"
+shape_spec: "[" INT ("," INT)* "]"
+init_clause: "init" expr
+
+rule_decl: "rule" IDENT "(" rule_param_list? ")" ":" type_ref "{" rule_clause+ "}"
+rule_param_list: rule_param ("," rule_param)*
+rule_param: IDENT ":" type_ref param_attr?
+param_attr: "nondiff"
+
+rule_clause: "forward" "=" expr ";"        -> rule_forward
+           | "d/d" IDENT "=" expr ";"      -> rule_deriv
+
+fn_decl: "fn" IDENT "(" fn_param_list? ")" fn_return? block
+fn_param_list: fn_param ("," fn_param)*
+fn_param: IDENT (":" type_ref)? shape_spec?
+fn_return: "->" type_ref
+
+type_ref: IDENT shape_spec?
+
+block: "{" stmt* "}"
+
+stmt: graph_stmt
+    | grad_stmt
+    | explain_stmt
+    | step_stmt
+    | for_stmt
+    | assign_stmt
+    | expr_stmt
+
+graph_stmt: "graph" "{" graph_item* "}"
+graph_item: IDENT "=" expr ";"
+
+assign_stmt: IDENT "=" expr ";"
+grad_stmt: "grad" IDENT "=" "derive" IDENT "wrt" "{" ident_list "}" ";"
+explain_stmt: "explain" IDENT ("level" INT)? ";"
+step_stmt: "step" call_expr "using" IDENT ";"
+for_stmt: "for" IDENT "in" range_expr block
+
+range_expr: expr ".." expr
+ident_list: IDENT ("," IDENT)*
+
+expr_stmt: expr ";"
+
+?expr: ternary
+
+?ternary: compare ("?" expr ":" expr)? -> ternary
+?compare: sum (COMP_OP sum)*
+?sum: term (ADD_OP term)*
+?term: factor (MUL_OP factor)*
+?factor: "-" factor        -> unary_neg
+       | atom
+
+?atom: call_expr
+     | NUMBER              -> number
+     | IDENT               -> name
+     | "(" expr ")"
+
+call_expr: IDENT "(" arg_list? ")"
+arg_list: arg ("," arg)*
+arg: IDENT "=" expr   -> arg_kw
+   | expr             -> arg_pos
+
+COMP_OP: "==" | ">=" | "<=" | ">" | "<"
+ADD_OP: "+" | "-"
+MUL_OP: "*" | "/" | "@"
+
+IDENT: /[a-zA-Z_][a-zA-Z0-9_]*/
+NUMBER: FLOAT | INT
+
+%import common.INT
+FLOAT: /[0-9]+\.[0-9]+/
+%import common.WS
+%ignore WS
+%ignore /\/\/[^\n]*/
