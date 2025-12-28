@@ -1,0 +1,22 @@
+// Example 1: hello_whitenn.wnn
+// Goal: minimal loop of graph -> derive -> explain -> step.
+
+model Hello {
+  param w init zeros;
+}
+
+fn train_step(out_path) {
+  graph {
+    L = (w - 3) * (w - 3);
+  }
+
+  grad g = derive L wrt {w};
+
+  explain g level 1 to out_path;
+  explain g level 2;
+
+  step SGD(lr=0.5) using g;
+}
+
+train_step("artifacts/hello-graph-step0.svg");
+train_step("artifacts/hello-graph-step1.svg");

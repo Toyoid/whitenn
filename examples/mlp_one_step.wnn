@@ -1,0 +1,46 @@
+// Example 3: mlp_one_step.wnn
+// Goal: implement a simple MLP with one training step, plus different activation funcs.
+
+model MLP {
+  param W1[2,3] init normal(0, 0.1);
+  param b1[3]   init zeros;
+  param W2[3,1] init normal(0, 0.1);
+  param b2[1]   init zeros;
+}
+
+rule relu(x: Real) : Real {
+  forward = max(0, x);
+  d/dx    = (x > 0) ? 1 : 0;
+}
+
+rule sigmoid(x: Real) : Real {
+  forward = 1 / (1 + exp(-x));
+  d/dx    = sigmoid(x) * (1 - sigmoid(x));
+}
+
+rule tanh(x: Real) : Real {
+  forward = (exp(x) - exp(-x)) / (exp(x) + exp(-x));
+  d/dx    = 1 - tanh(x) * tanh(x);
+}
+
+rule mse(y: Real, t: Real) : Real {
+  forward = (y - t) * (y - t);
+  d/dy = 2 * (y - t);
+  d/dt = -2 * (y - t);
+}
+
+fn train_step(x[2], t[1]) {
+  graph {
+    h = relu(x @ W1 + b1);
+    z = tanh(h);
+    y = sigmoid(z @ W2 + b2);
+    t0 = t;
+  }
+  loss L = mse(y, t0);
+  grad g = derive L wrt {W1, b1, W2, b2};
+  explain g level 1 to "artifacts/mlp-graph.svg";
+  explain g level 2;
+  step SGD(lr=0.1) using g;
+}
+
+train_step([[1.0, -2.0]], [[0.8]]);

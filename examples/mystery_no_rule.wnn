@@ -1,0 +1,19 @@
+// Example 2: mystery_no_rule.wnn
+// Goal: show that calling a function without a rule fails in a differentiable graph.
+
+model M {
+  param w init zeros;
+}
+
+rule mystery(x: Real) : Real {
+  forward = x * x + 1;
+}
+
+fn run() {
+  graph {
+    y = mystery(w);
+  }
+  grad g = derive y wrt {w};
+}
+
+run();

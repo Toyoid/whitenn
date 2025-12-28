@@ -32,7 +32,10 @@ type_ref: IDENT shape_spec?
 block: "{" stmt* "}"
 
 stmt: graph_stmt
+    | loss_stmt
     | grad_stmt
+    | fetch_stmt
+    | return_stmt
     | explain_stmt
     | step_stmt
     | for_stmt
@@ -43,8 +46,11 @@ graph_stmt: "graph" "{" graph_item* "}"
 graph_item: IDENT "=" expr ";"
 
 assign_stmt: IDENT "=" expr ";"
+loss_stmt: "loss" IDENT "=" expr ";"
 grad_stmt: "grad" IDENT "=" "derive" IDENT "wrt" "{" ident_list "}" ";"
-explain_stmt: "explain" IDENT ("level" INT)? ";"
+fetch_stmt: "fetch" IDENT "=" IDENT ";"
+return_stmt: "return" expr? ";"
+explain_stmt: "explain" IDENT ("level" INT)? ("to" expr)? ";"
 step_stmt: "step" call_expr "using" IDENT ";"
 for_stmt: "for" IDENT "in" range_expr block
 
@@ -60,12 +66,18 @@ expr_stmt: expr ";"
 ?sum: term (ADD_OP term)*
 ?term: factor (MUL_OP factor)*
 ?factor: "-" factor        -> unary_neg
-       | atom
+       | postfix
+
+?postfix: atom ("[" expr "]")* -> postfix
 
 ?atom: call_expr
+     | STRING             -> string
+     | list_literal
      | NUMBER              -> number
      | IDENT               -> name
      | "(" expr ")"
+
+list_literal: "[" (expr ("," expr)*)? "]"
 
 call_expr: IDENT "(" arg_list? ")"
 arg_list: arg ("," arg)*
@@ -81,6 +93,7 @@ NUMBER: FLOAT | INT
 
 %import common.INT
 FLOAT: /[0-9]+\.[0-9]+/
+%import common.ESCAPED_STRING -> STRING
 %import common.WS
 %ignore WS
 %ignore /\/\/[^\n]*/

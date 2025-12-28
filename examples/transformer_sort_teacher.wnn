@@ -1,0 +1,142 @@
+// Example 6: transformer_sort_teacher.wnn
+// Predict which token should be ranked higher by a teacher score.
+
+model Sorter {
+  // Transformer block params
+  param Wq[4,4] init normal(0, 0.1);
+  param Wk[4,4] init normal(0, 0.1);
+  param Wv[4,4] init normal(0, 0.1);
+
+  param W1[4,8] init normal(0, 0.1);
+  param b1[8]   init zeros;
+  param W2[8,4] init normal(0, 0.1);
+  param b2[4]   init zeros;
+  param Wpref[4] init normal(0, 0.1);
+
+  // Teacher MLP scorer (fixed, not updated by training)
+  param Wt1[4,16] init normal(0, 0.3);
+  param bt1[16]   init zeros;
+  param Wt2[16]   init normal(0, 0.3);
+  param bt2      init zeros;
+}
+
+rule relu(x: Real) : Real {
+  forward = max(0, x);
+  d/dx    = (x > 0) ? 1 : 0;
+}
+
+rule cross_entropy(p: Real, t: Real nondiff) : Real {
+  forward = -t * log(p + 0.00000001);
+  d/dp = -t / (p + 0.00000001);
+}
+
+fn accuracy(preds, target) {
+  pred_idx = argmax(preds);
+  tgt_idx = argmax(target);
+  eq = pred_idx == tgt_idx;
+  return mean(eq);
+}
+
+fn make_target(x) {
+  graph {
+    t_h = relu(x @ Wt1 + bt1);
+    scores = (t_h @ Wt2 + bt2) * 2.0;
+  }
+  fetch teacher = scores;
+  best = argmax(teacher);
+  target = one_hot(best, 2);
+  target = target[0];
+  return target;
+}
+
+fn forward_block(x) {
+  graph {
+    Q = x @ Wq;
+    K = x @ Wk;
+    V = x @ Wv;
+
+    scores = (Q @ transpose(K)) / 2.0;
+    weights = softmax(scores);
+    attn = weights @ V;
+    h = attn + x;
+
+    ff = relu(h @ W1 + b1);
+    y = ff @ W2 + b2;
+  }
+  fetch out = y;
+  return out;
+}
+
+fn predict(x) {
+  logits = forward_block(x);
+  graph {
+    scores = logits @ Wpref;
+    probs = softmax(scores);
+  }
+  fetch preds = probs;
+  return preds;
+}
+
+fn train_step(x, target) {
+  graph {
+    Q = x @ Wq;
+    K = x @ Wk;
+    V = x @ Wv;
+
+    scores = (Q @ transpose(K)) / 2.0;
+    weights = softmax(scores);
+    attn = weights @ V;
+    h = attn + x;
+
+    ff = relu(h @ W1 + b1);
+    h_ff = ff @ W2 + b2;
+    logits = h_ff @ Wpref;
+    probs = softmax(logits);
+    t0 = target;
+  }
+  loss L = sum(cross_entropy(probs, t0));
+  grad g = derive L wrt {Wq, Wk, Wv, W1, b1, W2, b2, Wpref};
+  step SGD(lr=0.005) using g;
+  fetch L_val = L;
+  avg = L_val / len(x);
+  preds = predict(x);
+  pred_idx = argmax(preds);
+  target_idx = argmax(target);
+  acc = accuracy(preds, target);
+  return [avg, acc];
+}
+
+// Training data (T=2, D=4) with per-sample scale/shift.
+x_all = randn(500, 2, 4);
+scale = randn(500, 1, 1) * 2 + 1.0;
+shift = randn(500, 1, 1) * 0.5;
+x_all = x_all * scale + shift;
+
+for epoch in 1..20 {
+  total_loss = 0;
+  total_acc = 0;
+  for i in 0..(len(x_all) - 1) {
+    x = x_all[i];
+    target = make_target(x);
+    metrics = train_step(x, target);
+    total_loss = total_loss + metrics[0];
+    total_acc = total_acc + metrics[1];
+  }
+  print("Epoch ", epoch);
+  print("Loss: ", total_loss / len(x_all));
+  print("Accuracy: ", total_acc / len(x_all));
+}
+
+// Extra test data (T=2).
+print("Test:");
+x2 = randn(2, 4);
+target2 = make_target(x2);
+
+probs = predict(x2);
+pred_idx = argmax(probs);
+target_idx = argmax(target2);
+acc = accuracy(probs, target2);
+print("Predicted Probs: ", probs);
+print("Predicted preference: ", pred_idx);
+print("Target preference: ", target_idx);
+print("Accuracy: ", acc);

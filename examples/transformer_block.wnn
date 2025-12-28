@@ -1,0 +1,54 @@
+// Example 5: transformer_block.wnn
+// Single-head self-attention + FFN with residuals (no batching).
+
+model TinyTransformer {
+  param Wq[2,2] init normal(0, 0.1);
+  param Wk[2,2] init normal(0, 0.1);
+  param Wv[2,2] init normal(0, 0.1);
+
+  param W1[2,4] init normal(0, 0.1);
+  param b1[4]   init zeros;
+  param W2[4,2] init normal(0, 0.1);
+  param b2[2]   init zeros;
+}
+
+rule relu(x: Real) : Real {
+  forward = max(0, x);
+  d/dx    = (x > 0) ? 1 : 0;
+}
+
+rule mse(y: Real, t: Real) : Real {
+  forward = (y - t) * (y - t);
+  d/dy = 2 * (y - t);
+  d/dt = -2 * (y - t);
+}
+
+fn train_step(x[2,2], t[2,2], out_path) {
+  graph {
+    Q = x @ Wq;
+    K = x @ Wk;
+    V = x @ Wv;
+
+    scores = (Q @ transpose(K)) / 1.4142;
+    weights = softmax(scores);
+    attn = weights @ V;
+    h = attn + x;
+
+    ff = relu(h @ W1 + b1);
+    y = ff @ W2 + b2;
+    t0 = t;
+  }
+  loss L = mean(mse(y, t0));
+  grad g = derive L wrt {Wq, Wk, Wv, W1, b1, W2, b2};
+  explain g level 1 to out_path;
+  explain g level 2;
+  step SGD(lr=1.0) using g;
+  fetch L_val = L;
+  print("Loss: ", L_val);
+}
+
+x = [[1.0, 0.5], [-0.5, 1.0]];
+t = [[0.2, 0.1], [0.0, 0.3]];
+
+train_step(x, t, "artifacts/transformer-block-1.svg");
+train_step(x, t, "artifacts/transformer-block-2.svg");

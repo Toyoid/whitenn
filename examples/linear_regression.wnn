@@ -1,0 +1,61 @@
+// Example 4: linear_regression.wnn
+// Linear regression with host-generated data and a training loop.
+
+model Linear {
+  param w init zeros;
+  param b init zeros;
+}
+
+rule mse(y: Real, t: Real) : Real {
+  forward = (y - t) * (y - t);
+  d/dy = 2 * (y - t);
+  d/dt = -2 * (y - t);
+}
+
+fn train_epoch(x, t, out_path) {
+  total = 0;
+  for i in 0..(len(x) - 1) {
+    xi = x[i];
+    ti = t[i];
+    graph {
+      y = xi * w + b;
+      t0 = ti;
+    }
+    loss L = mse(y, t0);
+    fetch L_val = L;
+    total = total + L_val;
+    grad g = derive L wrt {w, b};
+    step SGD(lr=0.1) using g;
+  }
+  avg = total / len(x);
+  print(avg);
+
+  x0 = x[0];
+  t0h = t[0];
+  graph {
+    y = x0 * w + b;
+    t0 = t0h;
+  }
+  loss L = mse(y, t0);
+  grad g = derive L wrt {w, b};
+  explain g level 1 to out_path;
+}
+
+x = linspace(-1, 1, 8);
+noise = randn(8) * 0.1;
+t = x * 2 + (-0.5) + noise;
+
+paths = [
+  "artifacts/linreg-epoch-1.svg",
+  "artifacts/linreg-epoch-2.svg",
+  "artifacts/linreg-epoch-3.svg",
+  "artifacts/linreg-epoch-4.svg",
+  "artifacts/linreg-epoch-5.svg"
+];
+
+for epoch in 1..5 {
+  path = paths[epoch - 1];
+  train_epoch(x, t, path);
+}
+
+print(w, b);

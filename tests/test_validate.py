@@ -76,3 +76,34 @@ def test_duplicate_top_level_name():
     with pytest.raises(ValidationError) as excinfo:
         validate_program(parse_program(source))
     assert "Duplicate top-level name" in str(excinfo.value)
+
+
+def test_loss_references_non_graph_name():
+    source = """
+    fn f() {
+      graph {
+        y = 1;
+      }
+      loss L = y + outside;
+    }
+    """
+    with pytest.raises(ValidationError) as excinfo:
+        validate_program(parse_program(source))
+    assert "loss references non-graph name" in str(excinfo.value)
+
+
+def test_assign_to_param_rejected():
+    source = """
+    model M {
+      param W init zeros;
+    }
+
+    fn f() {
+      W = 1;
+    }
+    """
+    with pytest.raises(ValidationError) as excinfo:
+        validate_program(parse_program(source))
+    assert "Cannot assign to param" in str(excinfo.value)
+    assert "^" in str(excinfo.value)
+    assert "Hint:" in str(excinfo.value)

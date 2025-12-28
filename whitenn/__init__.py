@@ -1,1 +1,1 @@
-__all__ = ["ast", "parser", "validate"]
+__all__ = ["ast", "parser", "validate", "interpreter"]
