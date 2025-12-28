@@ -21,7 +21,7 @@ def test_cli_runs_and_prints_explain(tmp_path, capsys):
       }
       loss L = y + y;
       grad g = derive L wrt {W, b};
-      explain g level 1;
+      explain g level 0;
     }
 
     train_step(2);
@@ -33,7 +33,7 @@ def test_cli_runs_and_prints_explain(tmp_path, capsys):
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert "digraph G" in captured.out
+    assert "Gradients for loss" in captured.out
 
 
 def test_cli_rejects_non_wnn(tmp_path, capsys):

@@ -47,7 +47,10 @@ def _format_level0(grad: Grad) -> str:
     lines: List[str] = []
     lines.append(f"Gradients for loss '{grad.loss}':")
     lines.append("-" * 45)
+    active = _active_node_ids(grad)
     for node in grad.graph.nodes:
+        if node.id not in active:
+            continue
         value = _fmt_array(node.value.as_array())
         gvalue = _fmt_array(grad.node_grads.get(node.id, np.zeros_like(node.value.as_array())))
         name = node.name or ""
@@ -57,13 +60,19 @@ def _format_level0(grad: Grad) -> str:
 
 def _format_level1(grad: Grad) -> str:
     name_map = _build_name_map(grad)
+    active = _active_node_ids(grad)
     lines = [_format_level0(grad), "", "digraph G {"]
     for node in grad.graph.nodes:
+        if node.id not in active:
+            continue
         label = _node_label(node, name_map, grad)
         lines.append(f'  n{node.id} [label="{label}"];')
     for node in grad.graph.nodes:
+        if node.id not in active:
+            continue
         for src in node.inputs:
-            lines.append(f"  n{src} -> n{node.id};")
+            if src in active:
+                lines.append(f"  n{src} -> n{node.id};")
     lines.append("}")
     return "\n".join(lines)
 
@@ -300,6 +309,15 @@ def _build_name_map(grad: Grad) -> Dict[int, str]:
     for node in grad.graph.nodes:
         mapping[node.id] = node.name or f"t{node.id}"
     return mapping
+
+
+def _active_node_ids(grad: Grad) -> set[int]:
+    active = set(grad.node_grads.keys())
+    if not active:
+        loss_id = grad.graph.name_to_id.get(grad.loss)
+        if loss_id is not None:
+            active.add(loss_id)
+    return active
 
 
 def _node_expr(node, name_map: Dict[int, str]) -> str:

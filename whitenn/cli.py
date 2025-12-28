@@ -34,8 +34,6 @@ def main(argv: Optional[list[str]] = None) -> int:
             ctx = interpreter.run_function(args.fn, fn_args)
         else:
             ctx = interpreter.run_program()
-        for text in ctx.explain_outputs:
-            print(text)
         return 0
     except (OSError, InterpreterError, WhiteNNError, ValueError) as exc:
         print(f"Error:\n{exc}", file=sys.stderr)

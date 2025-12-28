@@ -23,6 +23,11 @@ rule mse(y: Real, t: Real) : Real {
   d/dt = -2 * (y - t);
 }
 
+rule stopgrad(x: Real) : Real {
+  forward = x;
+  d/dx    = 0;
+}
+
 fn train_step(x[2,2], t[2,2], out_path) {
   graph {
     Q = x @ Wq;
@@ -50,5 +55,7 @@ fn train_step(x[2,2], t[2,2], out_path) {
 x = [[1.0, 0.5], [-0.5, 1.0]];
 t = [[0.2, 0.1], [0.0, 0.3]];
 
+print("Before Training:");
 train_step(x, t, "artifacts/transformer-block-1.svg");
+print("One Step Training:");
 train_step(x, t, "artifacts/transformer-block-2.svg");

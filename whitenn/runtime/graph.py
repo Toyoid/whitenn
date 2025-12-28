@@ -8,7 +8,7 @@ import numpy as np
 from .. import ast
 from ..errors import RuntimeError, format_error
 from .params import ParamStore
-from .rules import RuleTable
+from .rules import RuleError, RuleTable
 from .values import Value
 
 
@@ -100,7 +100,7 @@ class GraphExecutor:
     ) -> Tuple[Value, int]:
         try:
             return self._eval_expr_inner(expr, env, builder)
-        except GraphError as exc:
+        except (GraphError, RuleError) as exc:
             if isinstance(expr, ast.Expr):
                 span = getattr(expr, "span", None)
             else:

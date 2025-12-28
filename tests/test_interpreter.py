@@ -91,14 +91,14 @@ def test_interpreter_explain_output():
         y = relu(x * W + b);
       }
       grad g = derive y wrt {W, b};
-      explain g level 1;
+      explain g level 0;
     }
     """
     program = parse_program(source)
     interpreter = Interpreter(program)
     ctx = interpreter.run_function("train_step", {"x": 2.0})
     assert ctx.last_explain is not None
-    assert "digraph G" in ctx.last_explain
+    assert "Gradients for loss" in ctx.last_explain
     assert ctx.explain_outputs
 
 
@@ -129,6 +129,7 @@ def test_interpreter_explain_to_svg(tmp_path):
     interpreter = Interpreter(program)
     ctx = interpreter.run_function("train_step", {"x": 2.0, "out_path": str(out_path)})
     assert ctx.last_explain is not None
+    assert not ctx.explain_outputs
     assert out_path.exists()
 
 
