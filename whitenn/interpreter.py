@@ -194,6 +194,19 @@ class Interpreter:
         if isinstance(stmt, ast.ForStmt):
             self._exec_for(stmt, ctx)
             return
+        if isinstance(stmt, ast.IfStmt):
+            cond_value = self._eval_host_expr(stmt.cond, ctx)
+            try:
+                cond = _coerce_bool(cond_value)
+            except InterpreterError as exc:
+                if exc.formatted:
+                    raise
+                raise self._error(str(exc), node=stmt.cond) from exc
+            if cond:
+                self._exec_block(stmt.then_block, ctx)
+            elif stmt.else_block is not None:
+                self._exec_block(stmt.else_block, ctx)
+            return
         raise InterpreterError(f"Unsupported statement '{type(stmt).__name__}'")
 
     def _exec_for(self, stmt: ast.ForStmt, ctx: ExecContext) -> None:
@@ -426,6 +439,18 @@ def _eval_host_binop(op: str, left: object, right: object) -> object:
         return left / right
     if op == "==":
         return left == right
+    if op == ">":
+        return left > right
+    if op == "<":
+        return left < right
+    if op == ">=":
+        return left >= right
+    if op == "<=":
+        return left <= right
+    if op == "&&":
+        return _coerce_bool(left) and _coerce_bool(right)
+    if op == "||":
+        return _coerce_bool(left) or _coerce_bool(right)
     raise InterpreterError(f"Unsupported host operator '{op}'")
 
 
@@ -458,6 +483,20 @@ def _coerce_int(value: object, label: str) -> int:
     if isinstance(value, np.ndarray) and value.shape == ():
         return _coerce_int(value.item(), label)
     raise InterpreterError(f"{label} must be an integer")
+
+
+def _coerce_bool(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float, np.integer, np.floating)):
+        return bool(value)
+    if isinstance(value, Value):
+        value = value.as_array()
+    if isinstance(value, np.ndarray):
+        if value.shape == ():
+            return bool(value.item())
+        raise InterpreterError("if condition must be a scalar")
+    raise InterpreterError("if condition must be a scalar")
 
 
 def _coerce_index(value: object) -> int:

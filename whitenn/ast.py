@@ -174,6 +174,14 @@ class ForStmt(Stmt):
     span: Optional[Span] = None
 
 
+@dataclass(frozen=True)
+class IfStmt(Stmt):
+    cond: "Expr"
+    then_block: Block
+    else_block: Optional[Block] = None
+    span: Optional[Span] = None
+
+
 # ---- Expressions ----
 
 

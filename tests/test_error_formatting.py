@@ -94,3 +94,35 @@ def test_error_location_optimizer_lr():
     assert "SGD lr must be numeric" in message
     assert "bad.wnn" in message
     assert "^" in message
+
+
+def test_error_location_if_condition_scalar():
+    source = """
+    fn f() {
+      if [1, 2] {
+        x = 1;
+      }
+    }
+
+    f();
+    """
+    message = _run_and_capture_error(source)
+    assert "if condition must be a scalar" in message
+    assert "bad.wnn" in message
+    assert "^" in message
+
+
+def test_error_location_boolean_operator_scalar():
+    source = """
+    fn f() {
+      if [1, 2] && 1 {
+        x = 1;
+      }
+    }
+
+    f();
+    """
+    message = _run_and_capture_error(source)
+    assert "if condition must be a scalar" in message
+    assert "bad.wnn" in message
+    assert "^" in message

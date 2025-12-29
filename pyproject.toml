@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "whitenn"
+version = "0.1.0"
+description = "WhiteNN DSL: White boxing core neural network mechanisms for education purposes"
+requires-python = ">=3.10"
+dependencies = ["lark", "numpy"]
+# authors = [{ name = "Your Name", email = "you@example.com" }]
+
+[project.scripts]
+whitenn = "whitenn.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["whitenn*"]
+exclude = ["artifacts*", "examples*", "tests*"]

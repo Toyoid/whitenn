@@ -104,6 +104,8 @@ class _Validator:
             return
         elif isinstance(stmt, ast.ExplainStmt):
             self._validate_explain_stmt(stmt)
+        elif isinstance(stmt, ast.IfStmt):
+            self._validate_if_stmt(stmt, ctx)
         elif isinstance(stmt, ast.ForStmt):
             self._validate_for_stmt(stmt, ctx)
         elif isinstance(stmt, ast.AssignStmt):
@@ -301,6 +303,11 @@ class _Validator:
         if not stmt.var_name:
             self._error("for loop variable cannot be empty", "for loop", node=stmt)
         self._validate_block(stmt.body, ctx)
+
+    def _validate_if_stmt(self, stmt: ast.IfStmt, ctx: "_BlockContext") -> None:
+        self._validate_block(stmt.then_block, ctx)
+        if stmt.else_block is not None:
+            self._validate_block(stmt.else_block, ctx)
 
     def _validate_block(self, block: ast.Block, ctx: "_BlockContext") -> None:
         for stmt in block.stmts:

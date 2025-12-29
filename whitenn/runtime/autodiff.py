@@ -332,19 +332,23 @@ def _matmul_grads(
     upstream: np.ndarray, left: np.ndarray, right: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
     up = np.asarray(upstream)
+    left = np.asarray(left)
+    right = np.asarray(right)
     if left.ndim == 1 and right.ndim == 1:
         return up * right, up * left
-    if left.ndim == 1 and right.ndim == 2:
-        left_contrib = up @ right.T
-        right_contrib = np.outer(left, up)
-        return left_contrib, right_contrib
-    if left.ndim == 2 and right.ndim == 1:
-        left_contrib = np.outer(up, right)
-        right_contrib = left.T @ up
-        return left_contrib, right_contrib
-    if left.ndim == 2 and right.ndim == 2:
-        return up @ right.T, left.T @ up
-    raise AutodiffError("matmul gradients support only 1D/2D inputs")
+    if left.ndim == 1 and right.ndim >= 2:
+        left_contrib = np.matmul(up, np.swapaxes(right, -1, -2))
+        right_contrib = left[:, None] * up[..., None, :]
+        return _reduce_grad(left_contrib, left.shape), _reduce_grad(right_contrib, right.shape)
+    if left.ndim >= 2 and right.ndim == 1:
+        left_contrib = up[..., :, None] * right
+        right_contrib = np.matmul(np.swapaxes(left, -1, -2), up[..., None])[..., 0]
+        return _reduce_grad(left_contrib, left.shape), _reduce_grad(right_contrib, right.shape)
+    if left.ndim >= 2 and right.ndim >= 2:
+        left_contrib = np.matmul(up, np.swapaxes(right, -1, -2))
+        right_contrib = np.matmul(np.swapaxes(left, -1, -2), up)
+        return _reduce_grad(left_contrib, left.shape), _reduce_grad(right_contrib, right.shape)
+    raise AutodiffError("matmul gradients require at least 1D inputs")
 
 
 def _param_name_to_id(graph: Graph) -> Dict[str, int]:

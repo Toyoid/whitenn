@@ -204,6 +204,62 @@ def test_autodiff_matmul_vector_matrix():
     assert np.allclose(grad.grads["W"].as_array(), expected)
 
 
+def test_autodiff_matmul_batched():
+    source = """
+    model M {
+      param W[4,3] init zeros;
+    }
+
+    fn f(x[2,4]) {
+      graph {
+        y = x @ W;
+      }
+    }
+    """
+    program = parse_program(source)
+    rules = RuleTable.from_program(program)
+    params = ParamStore(seed=0)
+    params.add_param("W", [4, 3], init=init_zeros)
+    params.get("W").value = Value(np.arange(12.0).reshape(4, 3))
+
+    graph_stmt = program.items[1].body.stmts[0]
+    x = np.arange(40.0).reshape(5, 2, 4)
+    graph = GraphExecutor(rules, params).execute(graph_stmt, env={"x": x})
+    grad = derive(graph, "y", ["W"], rules)
+
+    upstream = np.ones_like(graph.get("y").value.as_array())
+    expected = np.einsum("bij,bik->jk", x, upstream)
+    assert np.allclose(grad.grads["W"].as_array(), expected)
+
+
+def test_autodiff_matmul_batched_vector():
+    source = """
+    model M {
+      param w[4] init zeros;
+    }
+
+    fn f(x[2,4]) {
+      graph {
+        y = x @ w;
+      }
+    }
+    """
+    program = parse_program(source)
+    rules = RuleTable.from_program(program)
+    params = ParamStore(seed=0)
+    params.add_param("w", [4], init=init_zeros)
+    params.get("w").value = Value(np.arange(4.0))
+
+    graph_stmt = program.items[1].body.stmts[0]
+    x = np.arange(40.0).reshape(5, 2, 4)
+    graph = GraphExecutor(rules, params).execute(graph_stmt, env={"x": x})
+    grad = derive(graph, "y", ["w"], rules)
+
+    upstream = np.ones_like(graph.get("y").value.as_array())
+    expected = np.einsum("bij,bi->j", x, upstream)
+    assert np.allclose(grad.grads["w"].as_array(), expected)
+
+
 def test_autodiff_broadcast_add_reduces_grad():
     source = """
     model M {

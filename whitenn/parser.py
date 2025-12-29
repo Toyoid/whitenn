@@ -217,6 +217,12 @@ class _ToAst(Transformer):
         body = items[2]
         return ast.ForStmt(var_name, start, end, body, span=_span(meta))
 
+    def if_stmt(self, meta, items: List[object]) -> ast.IfStmt:
+        cond = items[0]
+        then_block = items[1]
+        else_block = items[2] if len(items) > 2 else None
+        return ast.IfStmt(cond, then_block, else_block, span=_span(meta))
+
     def range_expr(self, meta, items: List[ast.Expr]) -> Tuple[ast.Expr, ast.Expr]:
         return items[0], items[1]
 
@@ -229,6 +235,12 @@ class _ToAst(Transformer):
         return ast.TernaryOp(items[0], items[1], items[2], span=_span(meta))
 
     def compare(self, meta, items: List[object]) -> ast.Expr:
+        return _fold_bin(items, _span(meta))
+
+    def or_expr(self, meta, items: List[object]) -> ast.Expr:
+        return _fold_bin(items, _span(meta))
+
+    def and_expr(self, meta, items: List[object]) -> ast.Expr:
         return _fold_bin(items, _span(meta))
 
     def sum(self, meta, items: List[object]) -> ast.Expr:
@@ -297,6 +309,12 @@ class _ToAst(Transformer):
         return str(token)
 
     def MUL_OP(self, token: Token) -> str:
+        return str(token)
+
+    def AND_OP(self, token: Token) -> str:
+        return str(token)
+
+    def OR_OP(self, token: Token) -> str:
         return str(token)
 
 

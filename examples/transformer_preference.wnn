@@ -1,4 +1,4 @@
-// Example 6: transformer_sort_teacher.wnn
+// Example 6: transformer_preference.wnn
 // Predict which token should be ranked higher by a teacher score.
 
 model Sorter {
@@ -45,7 +45,6 @@ fn make_target(x) {
   fetch teacher = scores;
   best = argmax(teacher);
   target = one_hot(best, 2);
-  target = target[0];
   return target;
 }
 
@@ -77,7 +76,7 @@ fn predict(x) {
   return preds;
 }
 
-fn train_step(x, target) {
+fn train_step(x, target, do_explain, out_path) {
   graph {
     Q = x @ Wq;
     K = x @ Wk;
@@ -96,6 +95,10 @@ fn train_step(x, target) {
   }
   loss L = sum(cross_entropy(probs, t0));
   grad g = derive L wrt {Wq, Wk, Wv, W1, b1, W2, b2, Wpref};
+  if do_explain {
+    explain g level 1 to out_path;
+    explain g level 2;
+  }
   step SGD(lr=0.005) using g;
   fetch L_val = L;
   avg = L_val / len(x);
@@ -112,13 +115,15 @@ scale = randn(500, 1, 1) * 2 + 1.0;
 shift = randn(500, 1, 1) * 0.5;
 x_all = x_all * scale + shift;
 
-for epoch in 1..20 {
+epochs = 30;
+for epoch in 1..epochs {
   total_loss = 0;
   total_acc = 0;
   for i in 0..(len(x_all) - 1) {
-    x = x_all[i];
+    x = [x_all[i]];
     target = make_target(x);
-    metrics = train_step(x, target);
+    do_explain = (epoch == epochs && i == len(x_all) - 1);
+    metrics = train_step(x, target, do_explain, "artifacts/transformer-preference.svg");
     total_loss = total_loss + metrics[0];
     total_acc = total_acc + metrics[1];
   }
@@ -127,16 +132,15 @@ for epoch in 1..20 {
   print("Accuracy: ", total_acc / len(x_all));
 }
 
-// Extra test data (T=2).
+// Extra test data (batch inference).
 print("Test:");
-x2 = randn(2, 4);
+x2 = randn(10, 2, 4);
 target2 = make_target(x2);
-
-probs = predict(x2);
-pred_idx = argmax(probs);
-target_idx = argmax(target2);
-acc = accuracy(probs, target2);
-print("Predicted Probs: ", probs);
-print("Predicted preference: ", pred_idx);
-print("Target preference: ", target_idx);
+probs2 = predict(x2);
+pred_idx2 = argmax(probs2);
+target_idx2 = argmax(target2);
+acc = accuracy(probs2, target2);
+print("Predicted Probs: ", probs2);
+print("Predicted preference: ", pred_idx2);
+print("Target preference: ", target_idx2);
 print("Accuracy: ", acc);

@@ -111,6 +111,23 @@ def test_parse_loss_expression():
     assert isinstance(loss_stmt.expr, ast.BinaryOp)
 
 
+def test_parse_if_statement():
+    source = """
+    fn f(x) {
+      if x > 0 && x < 3 {
+        y = 1;
+      } else {
+        y = -1;
+      }
+    }
+    """
+    program = parse_program(source)
+    fn = program.items[0]
+    if_stmt = next(stmt for stmt in fn.body.stmts if isinstance(stmt, ast.IfStmt))
+    assert isinstance(if_stmt.cond, ast.BinaryOp)
+    assert if_stmt.else_block is not None
+
+
 def test_parse_list_literal():
     source = """
     fn f() {

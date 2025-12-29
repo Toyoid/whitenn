@@ -301,6 +301,10 @@ def _eval_binary(op: str, left: np.ndarray, right: np.ndarray) -> np.ndarray:
         return left >= right
     if op == "<=":
         return left <= right
+    if op == "&&":
+        return np.logical_and(left, right)
+    if op == "||":
+        return np.logical_or(left, right)
     raise GraphError(f"Unsupported binary operator '{op}'")
 
 

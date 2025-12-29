@@ -38,6 +38,7 @@ stmt: graph_stmt
     | return_stmt
     | explain_stmt
     | step_stmt
+    | if_stmt
     | for_stmt
     | assign_stmt
     | expr_stmt
@@ -53,6 +54,7 @@ return_stmt: "return" expr? ";"
 explain_stmt: "explain" IDENT ("level" INT)? ("to" expr)? ";"
 step_stmt: "step" call_expr "using" IDENT ";"
 for_stmt: "for" IDENT "in" range_expr block
+if_stmt: "if" expr block ("else" block)?
 
 range_expr: expr ".." expr
 ident_list: IDENT ("," IDENT)*
@@ -61,7 +63,9 @@ expr_stmt: expr ";"
 
 ?expr: ternary
 
-?ternary: compare ("?" expr ":" expr)? -> ternary
+?ternary: or_expr ("?" expr ":" expr)? -> ternary
+?or_expr: and_expr (OR_OP and_expr)*
+?and_expr: compare (AND_OP compare)*
 ?compare: sum (COMP_OP sum)*
 ?sum: term (ADD_OP term)*
 ?term: factor (MUL_OP factor)*
@@ -85,6 +89,8 @@ arg: IDENT "=" expr   -> arg_kw
    | expr             -> arg_pos
 
 COMP_OP: "==" | ">=" | "<=" | ">" | "<"
+AND_OP: "&&"
+OR_OP: "||"
 ADD_OP: "+" | "-"
 MUL_OP: "*" | "/" | "@"
 

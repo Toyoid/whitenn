@@ -161,6 +161,24 @@ def test_interpreter_for_loop_executes():
     assert float(param) == pytest.approx(-0.3)
 
 
+def test_interpreter_if_else():
+    source = """
+    fn f(x) {
+      if x > 0 && x < 3 {
+        y = 1;
+      } else {
+        y = -1;
+      }
+    }
+    """
+    program = parse_program(source)
+    interpreter = Interpreter(program)
+    ctx = interpreter.run_function("f", {"x": 2})
+    assert ctx.env["y"] == 1.0
+    ctx = interpreter.run_function("f", {"x": -1})
+    assert ctx.env["y"] == -1.0
+
+
 def test_interpreter_function_call_assignment():
     source = """
     model M {
