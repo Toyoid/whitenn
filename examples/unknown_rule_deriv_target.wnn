@@ -1,0 +1,6 @@
+// Negative example: derivative for a param not in the rule signature.
+
+rule bad(x: Real) : Real {
+  forward = x;
+  d/dy = 1;
+}

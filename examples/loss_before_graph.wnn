@@ -1,0 +1,6 @@
+// Negative example: loss without a preceding graph.
+
+fn train_step(x) {
+  loss L = x;
+  grad g = derive L wrt {W};
+}

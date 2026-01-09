@@ -1,0 +1,9 @@
+// Negative example: assigning to a param in host code.
+
+model M {
+  param W init zeros;
+}
+
+fn train_step() {
+  W = 1;
+}

@@ -47,6 +47,9 @@ fn train_step(x[2,2], t[2,2], out_path) {
   grad g = derive L wrt {Wq, Wk, Wv, W1, b1, W2, b2};
   explain g level 1 to out_path;
   explain g level 2;
+  grad g_par = derive attn wrt {Wq, Wk, Wv, W1, b1, W2, b2};
+  explain g_par level 1 to "artifacts/transformer-block-partial-graph.svg";
+  explain g_par level 2;
   step SGD(lr=1.0) using g;
   fetch L_val = L;
   print("Loss: ", L_val);

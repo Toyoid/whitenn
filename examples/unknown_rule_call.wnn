@@ -1,0 +1,9 @@
+// Negative example: calling an undefined rule inside a graph.
+
+fn f(x) {
+  graph {
+    y = foo(x);
+  }
+}
+
+f(1);
