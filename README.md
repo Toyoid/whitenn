@@ -138,3 +138,6 @@ Negative examples:
 - Graph expressions disallow indexing; use host code + `fetch` to materialize
   values if you need to index.
 - Explain level 1 requires an output path (SVG/PNG).
+
+## License
+MIT
