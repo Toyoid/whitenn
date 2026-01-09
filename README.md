@@ -119,7 +119,7 @@ Computation graph of MLP (SVG) with `explain g level 1 to "artifacts/mlp-graph.s
 
 ![alt text](figs/mlp-graph.svg)
 
-Gradient chain-rule trace with `explain g level 2;`:
+Auto-generated gradient chain-rule trace with `explain g level 2;`:
 
 ```
 Explaining Gradients for loss 'L':
