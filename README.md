@@ -115,7 +115,92 @@ fn train_step(x[2], t[1]) {
 train_step([[1.0, -2.0]], [[0.8]]);
 
 ```
+Computation graph of MLP (SVG) with `explain g level 1 to "artifacts/mlp-graph.svg";`:
 
+![alt text](figs/mlp-graph.svg)
+
+Gradient chain-rule trace with `explain g level 2;`:
+
+```
+Explaining Gradients for loss 'L':
+-----------------------------------------------------
+For W1 (shape [2, 3]):
+∂L/∂W1 = ∂L/∂y * ∂y/∂t10 * ∂t10/∂t8 * ∂t8/∂z * ∂z/∂h * ∂h/∂t4 * ∂t4/∂t2 * ∂t2/∂W1
+where:
+    L = mse(y, t0)
+    y = sigmoid(z @ W2 + b2)
+    t10 = t8 + b2
+    t8 = z @ W2
+    z = tanh(h)
+    h = relu(x @ W1 + b1)
+    t4 = t2 + b1
+    t2 = x @ W1
+Explanation:
+Trace:
+  node t2
+    upstream = [[-0.   ,-0.014, 0.   ]]
+    -> W1: left.T @ upstream = [[ 0.   ,-0.014, 0.   ],
+ [ 0.   , 0.028, 0.   ]]
+  total = [[ 0.   ,-0.014, 0.   ],
+ [ 0.   , 0.028, 0.   ]]
+Therefore:
+    ∂L/∂W1 = output_grad * mse'(y) * sigmoid'(t10) * 1 * W2^T * tanh'(h) * relu'(t4) * 1 * x^T
+-----------------------------------------------------
+For b1 (shape [3]):
+∂L/∂b1 = ∂L/∂y * ∂y/∂t10 * ∂t10/∂t8 * ∂t8/∂z * ∂z/∂h * ∂h/∂t4 * ∂t4/∂b1
+where:
+    L = mse(y, t0)
+    y = sigmoid(z @ W2 + b2)
+    t10 = t8 + b2
+    t8 = z @ W2
+    z = tanh(h)
+    h = relu(x @ W1 + b1)
+    t4 = t2 + b1
+Explanation:
+Trace:
+  node t4
+    upstream = [[-0.   ,-0.014, 0.   ]]
+    -> b1: upstream * 1 = [ 0.   ,-0.014, 0.   ]
+  total = [ 0.   ,-0.014, 0.   ]
+Therefore:
+    ∂L/∂b1 = output_grad * mse'(y) * sigmoid'(t10) * 1 * W2^T * tanh'(h) * relu'(t4) * 1
+-----------------------------------------------------
+For W2 (shape [3, 1]):
+∂L/∂W2 = ∂L/∂y * ∂y/∂t10 * ∂t10/∂t8 * ∂t8/∂W2
+where:
+    L = mse(y, t0)
+    y = sigmoid(z @ W2 + b2)
+    t10 = t8 + b2
+    t8 = z @ W2
+Explanation:
+Trace:
+  node t8
+    upstream = [[-0.1489]]
+    -> W2: left.T @ upstream = [[ 0.    ],
+ [-0.0139],
+ [ 0.    ]]
+  total = [[ 0.    ],
+ [-0.0139],
+ [ 0.    ]]
+Therefore:
+    ∂L/∂W2 = output_grad * mse'(y) * sigmoid'(t10) * 1 * z^T
+-----------------------------------------------------
+For b2 (shape [1]):
+∂L/∂b2 = ∂L/∂y * ∂y/∂t10 * ∂t10/∂b2
+where:
+    L = mse(y, t0)
+    y = sigmoid(z @ W2 + b2)
+    t10 = t8 + b2
+Explanation:
+Trace:
+  node t10
+    upstream = [[-0.1489]]
+    -> b2: upstream * 1 = [-0.1489]
+  total = [-0.1489]
+Therefore:
+    ∂L/∂b2 = output_grad * mse'(y) * sigmoid'(t10) * 1
+-----------------------------------------------------
+```
 ## Example Demos
 
 - `examples/hello_whitenn.wnn`
